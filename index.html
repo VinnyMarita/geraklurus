@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Blok Gerak Dua Dimensi</title>
+<style>
+  :root{
+    --bg:#0e1a2b; --panel:#16263d; --panel2:#1e3252;
+    --accent:#4ade80; --accent2:#38bdf8; --warn:#fbbf24; --bad:#f87171;
+    --text:#e8f0ff; --muted:#9fb3d1;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    background:linear-gradient(160deg,#0b1524,#0e1a2b 40%,#0a1220);
+    color:var(--text); min-height:100vh; display:flex; flex-direction:column;
+  }
+  header{
+    padding:10px 14px; background:rgba(22,38,61,.9);
+    border-bottom:1px solid #24395c; display:flex;
+    justify-content:space-between; align-items:center; gap:8px;
+    position:sticky; top:0; z-index:20;
+  }
+  header h1{font-size:15px;margin:0;color:var(--accent2);}
+  .hud{display:flex;gap:6px;flex-wrap:wrap;font-size:11px;}
+  .hud span{background:#0e1a2b;border:1px solid #2a4268;padding:3px 7px;border-radius:20px;color:var(--muted);}
+  .hud b{color:var(--accent);}
+  main{flex:1;padding:12px;max-width:900px;width:100%;margin:0 auto;}
+  .screen{display:none;animation:fade .3s ease;}
+  .screen.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+  .card{
+    background:var(--panel); border:1px solid #263c60; border-radius:16px;
+    padding:16px; margin-bottom:12px; box-shadow:0 6px 18px rgba(0,0,0,.25);
+  }
+  h2{margin:0 0 8px;font-size:19px;color:var(--accent2);}
+  h3{margin:14px 0 6px;font-size:15px;color:var(--accent);}
+  p{line-height:1.55;color:var(--muted);margin:6px 0;font-size:14px;}
+  label{display:block;font-size:13px;margin:10px 0 4px;color:var(--muted);}
+  input[type=text]{
+    width:100%;padding:11px 12px;border-radius:10px;border:1px solid #2a4268;
+    background:#0e1a2b;color:var(--text);font-size:15px;
+  }
+  button{
+    cursor:pointer;border:none;border-radius:10px;padding:11px 14px;
+    font-size:14px;font-weight:600;background:var(--accent2);color:#04263a;
+    transition:transform .08s ease;
+  }
+  button:active{transform:scale(.97);}
+  button:disabled{opacity:.45;cursor:not-allowed;}
+  .btn-secondary{background:#2a4268;color:var(--text);}
+  .btn-accent{background:var(--accent);color:#052e16;}
+  .btn-warn{background:var(--warn);color:#3a2a00;}
+  .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+  .btn-row button{flex:1;min-width:120px;}
+  canvas{display:block;width:100%;border-radius:12px;background:#08111e;touch-action:none;}
+  #threeHolder,#canvas2dHolder{width:100%;border-radius:12px;overflow:hidden;border:1px solid #263c60;}
+  #threeHolder{height:260px;}
+  #canvas2d{height:260px;}
+  .sim-info{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:8px;font-size:12px;}
+  .sim-info div{background:#0e1a2b;border:1px solid #24395c;border-radius:8px;padding:6px 8px;}
+  .sim-info b{color:var(--accent);}
+  .controls{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
+  .controls label{margin:0;}
+  input[type=range]{width:100%;accent-color:var(--accent);}
+  .opt{
+    display:flex;align-items:center;gap:10px;padding:11px 12px;margin:7px 0;
+    background:#0e1a2b;border:1px solid #2a4268;border-radius:10px;cursor:pointer;
+    font-size:14px;transition:border .15s,background .15s;
+  }
+  .opt:hover{border-color:var(--accent2);}
+  .opt.selected{border-color:var(--accent2);background:#132a44;}
+  .opt.correct{border-color:var(--accent);background:#123a26;}
+  .opt.wrong{border-color:var(--bad);background:#3a1414;}
+  .opt .key{width:26px;height:26px;flex:0 0 26px;display:grid;place-items:center;
+    background:#24395c;border-radius:7px;font-weight:700;font-size:13px;}
+  .feedback{margin-top:10px;padding:10px 12px;border-radius:10px;font-size:13px;line-height:1.5;display:none;}
+  .feedback.ok{display:block;background:#123a26;border:1px solid var(--accent);}
+  .feedback.no{display:block;background:#3a1414;border:1px solid var(--bad);}
+  .progress-bar{height:10px;background:#0e1a2b;border-radius:20px;overflow:hidden;margin:8px 0;border:1px solid #24395c;}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));width:0%;transition:width .4s ease;}
+  .badge{
+    display:inline-flex;flex-direction:column;align-items:center;justify-content:center;
+    width:96px;height:96px;border-radius:50%;margin:6px;
+    background:radial-gradient(circle at 30% 25%,#2a4268,#0e1a2b);
+    border:2px solid var(--warn);text-align:center;padding:8px;
+    font-size:10px;color:var(--warn);font-weight:700;line-height:1.2;
+    box-shadow:0 0 18px rgba(251,191,36,.25);
+  }
+  .badge .ico{font-size:22px;margin-bottom:3px;}
+  .badge.locked{border-color:#2a4268;color:#4a6288;box-shadow:none;filter:grayscale(1);}
+  .badge.master{border-color:var(--accent);color:var(--accent);box-shadow:0 0 22px rgba(74,222,128,.35);}
+  .toast{
+    position:fixed;left:50%;bottom:20px;transform:translateX(-50%) translateY(120px);
+    background:var(--panel2);border:1px solid var(--accent);color:var(--text);
+    padding:10px 16px;border-radius:12px;font-size:13px;z-index:100;
+    transition:transform .35s ease;max-width:90%;text-align:center;
+  }
+  .toast.show{transform:translateX(-50%) translateY(0);}
+  .small{font-size:12px;color:var(--muted);}
+  .center{text-align:center;}
+  .mission-list{display:grid;gap:8px;margin-top:8px;}
+  .mission-item{
+    display:flex;justify-content:space-between;align-items:center;gap:8px;
+    background:#0e1a2b;border:1px solid #24395c;border-radius:10px;padding:10px 12px;font-size:13px;
+  }
+  .mission-item.done{border-color:var(--accent);}
+  .tag{font-size:10px;padding:2px 8px;border-radius:20px;background:#24395c;color:var(--muted);}
+  .tag.done{background:#123a26;color:var(--accent);}
+  @media(min-width:640px){
+    #threeHolder{height:340px;}
+    #canvas2d{height:320px;}
+    header h1{font-size:18px;}
+    .sim-info{grid-template-columns:repeat(4,1fr);}
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>⛏️ Blok Gerak Dua Dimensi</h1>
+  <div class="hud">
+    <span>Skor <b id="hudScore">0</b></span>
+    <span>Percobaan <b id="hudAttempts">0</b></span>
+    <span>Badge <b id="hudBadges">0</b></span>
+  </div>
+</header>
+
+<main>
+  <!-- HALAMAN AWAL -->
+  <section id="screen-home" class="screen active">
+    <div class="card">
+      <h2>Selamat datang di Dunia Blok Fisika!</h2>
+      <p>Kamu adalah insinyur muda yang membangun dan meluncurkan benda di dunia blok. Selesaikan misi gerak dua dimensi dengan menjawab 10 soal tiap misi. Jawaban benar memajukan lintasan benda; jawaban salah menghentikan progres dan kamu harus mencoba lagi.</p>
+      <label for="playerName">Nama Pemain</label>
+      <input type="text" id="playerName" placeholder="Masukkan namamu..." maxlength="20" />
+      <h3>Petunjuk Permainan</h3>
+      <p>1. Pilih misi. 2. Atur kecepatan awal &amp; sudut peluncuran. 3. Jawab 10 soal pilihan ganda. 4. Setiap jawaban benar memajukan benda menuju target. 5. Jawaban salah = pelajari pembahasan, lalu ulangi soal yang sama. 6. Selesaikan semua misi untuk badge "Master Gerak Dua Dimensi".</p>
+      <div class="btn-row">
+        <button id="btnStart" class="btn-accent">Mulai Bermain</button>
+        <button id="btnBadgesHome" class="btn-secondary">Lihat Badge</button>
+      </div>
+      <div class="btn-row">
+        <button id="btnImportHome" class="btn-secondary">Impor Progres</button>
+        <button id="btnExportHome" class="btn-secondary">Ekspor Progres</button>
+        <button id="btnResetHome" class="btn-warn">Reset Data</button>
+      </div>
+      <p class="small" id="saveInfo"></p>
+    </div>
+  </section>
+
+  <!-- HALAMAN PILIH MISI -->
+  <section id="screen-missions" class="screen">
+    <div class="card">
+      <h2>Pilih Misi</h2>
+      <p>Halo, <b id="greetName">Pemain</b>! Pilih misi yang ingin kamu selesaikan.</p>
+      <div class="mission-list" id="missionList"></div>
+      <div class="btn-row">
+        <button id="btnBackHomeFromMissions" class="btn-secondary">Kembali ke Beranda</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- HALAMAN MISI -->
+  <section id="screen-mission" class="screen">
+    <div class="card">
+      <h2 id="missionTitle">Misi</h2>
+      <p id="missionDesc"></p>
+      <div class="progress-bar"><div class="progress-fill" id="missionProgress"></div></div>
+      <p class="small">Progres misi: <b id="missionProgressText">0/10</b> soal benar</p>
+    </div>
+
+    <div class="card">
+      <h3>Simulasi Gerak Parabola</h3>
+      <div id="threeHolder"></div>
+      <canvas id="canvas2d" style="display:none;"></canvas>
+      <div class="sim-info">
+        <div>Posisi x: <b id="simX">0</b> m</div>
+        <div>Posisi y: <b id="simY">0</b> m</div>
+        <div>vx: <b id="simVx">0</b> m/s</div>
+        <div>vy: <b id="simVy">0</b> m/s</div>
+        <div>Waktu: <b id="simT">0</b> s</div>
+        <div>v₀x: <b id="simV0x">0</b> m/s</div>
+        <div>v₀y: <b id="simV0y">0</b> m/s</div>
+        <div>Jangkauan: <b id="simRange">0</b> m</div>
+      </div>
+      <div class="controls">
+        <div>
+          <label>Kecepatan awal v₀: <b id="lblV0">25</b> m/s</label>
+          <input type="range" id="rangeV0" min="10" max="60" value="25" step="1" />
+        </div>
+        <div>
+          <label>Sudut θ: <b id="lblTheta">45</b>°</label>
+          <input type="range" id="rangeTheta" min="10" max="80" value="45" step="1" />
+        </div>
+      </div>
+      <div class="btn-row">
+        <button id="btnLaunch" class="btn-accent">Luncurkan</button>
+        <button id="btnResetSim" class="btn-secondary">Reset Simulasi</button>
+      </div>
+      <p class="small">Gravitasi g = 9,8 m/s². Tanpa hambatan udara.</p>
+    </div>
+
+    <div class="card">
+      <h3 id="questionHeading">Soal 1 dari 10</h3>
+      <p id="questionText" style="color:var(--text);font-size:15px;"></p>
+      <div id="optionsBox"></div>
+      <div class="feedback" id="feedbackBox"></div>
+      <div class="btn-row">
+        <button id="btnSubmit" class="btn-accent">Jawab</button>
+        <button id="btnNext" class="btn-secondary" disabled>Soal Berikutnya</button>
+      </div>
+      <div class="btn-row">
+        <button id="btnBackHome" class="btn-secondary">Kembali ke Beranda</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- HALAMAN HASIL -->
+  <section id="screen-result" class="screen">
+    <div class="card center">
+      <h2 id="resultTitle">Misi Selesai!</h2>
+      <p id="resultSubtitle"></p>
+      <div id="badgeArea"></div>
+    </div>
+    <div class="card">
+      <h3>Statistik</h3>
+      <div class="sim-info">
+        <div>Skor: <b id="resScore">0</b></div>
+        <div>Jawaban benar: <b id="resCorrect">0</b></div>
+        <div>Percobaan: <b id="resAttempts">0</b></div>
+        <div>Waktu: <b id="resTime">-</b></div>
+        <div>Misi selesai: <b id="resMissions">0</b></div>
+        <div>Badge: <b id="resBadges">0</b></div>
+      </div>
+      <div class="btn-row">
+        <button id="btnReplay" class="btn-secondary">Ulangi Misi</button>
+        <button id="btnNextMission" class="btn-accent">Misi Berikutnya</button>
+      </div>
+      <div class="btn-row">
+        <button id="btnHomeFromResult" class="btn-secondary">Beranda</button>
+        <button id="btnExportResult" class="btn-secondary">Ekspor Progres</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- HALAMAN BADGE -->
+  <section id="screen-badges" class="screen">
+    <div class="card">
+      <h2>Koleksi Badge</h2>
+      <div id="badgeCollection"></div>
+      <div class="btn-row">
+        <button id="btnBackFromBadges" class="btn-secondary">Kembali</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+<input type="file" id="fileImport" accept="application/json" style="display:none;" />
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* =========================================================
+   BLOK GERAK DUA DIMENSI - Game edukasi fisika
+   ========================================================= */
+
+const G = 9.8;
+const SAVE_KEY = "fisikaDuaDimensiSave";
+const TOTAL_Q = 10;
+
+/* ---------- BANK SOAL ---------- */
+const QUESTION_BANK = {
+  mission1: [
+    { q:"Sebuah bola diluncurkan dengan kecepatan awal 20 m/s pada sudut 30° terhadap horizontal. Berapakah komponen kecepatan horizontal v₀x? (cos 30° = 0,866)",
+      opsi:["10 m/s","17,3 m/s","20 m/s","8,66 m/s"], jawaban:1,
+      bahas:"v₀x = v₀ cos θ = 20 × 0,866 = 17,3 m/s." },
+    { q:"Dari soal sebelumnya, berapakah komponen kecepatan vertikal v₀y? (sin 30° = 0,5)",
+      opsi:["10 m/s","17,3 m/s","20 m/s","5 m/s"], jawaban:0,
+      bahas:"v₀y = v₀ sin θ = 20 × 0,5 = 10 m/s." },
+    { q:"Pada gerak parabola ideal, komponen kecepatan horizontal vx selama benda di udara adalah...",
+      opsi:["Terus berkurang","Terus bertambah","Konstan","Berubah tanda"], jawaban:2,
+      bahas:"Tanpa hambatan udara, tidak ada percepatan horizontal, sehingga vx = v₀x konstan." },
+    { q:"Sebuah benda bergerak parabola. Di titik tertinggi lintasan, komponen kecepatan vertikalnya adalah...",
+      opsi:["Maksimum","Nol","Sama dengan v₀x","Negatif maksimum"], jawaban:1,
+      bahas:"Di titik tertinggi, vy = 0 karena benda berhenti naik sesaat sebelum turun." },
+    { q:"Waktu yang diperlukan benda untuk mencapai titik tertinggi dirumuskan...",
+      opsi:["t = v₀/g","t = v₀ sin θ / g","t = v₀ cos θ / g","t = 2 v₀ sin θ / g"], jawaban:1,
+      bahas:"vy = v₀y − gt = 0 → t = v₀y/g = v₀ sin θ / g." },
+    { q:"Tinggi maksimum yang dicapai benda pada gerak parabola dirumuskan...",
+      opsi:["h = v₀² sin²θ / (2g)","h = v₀² cos²θ / (2g)","h = v₀² / (2g)","h = v₀ sin θ / g"], jawaban:0,
+      bahas:"h maks = v₀y² / (2g) = (v₀ sin θ)² / (2g) = v₀² sin²θ / (2g)." },
+    { q:"Jangkauan horizontal maksimum (range) pada gerak parabola dicapai saat sudut...",
+      opsi:["30°","45°","60°","90°"], jawaban:1,
+      bahas:"R = v₀² sin 2θ / g. Nilai sin 2θ maksimum saat 2θ = 90°, yaitu θ = 45°." },
+    { q:"Sebuah bola ditendang dengan v₀ = 20 m/s pada sudut 45°. Berapa jangkauan horizontalnya? (g = 10 m/s², sin 90° = 1)",
+      opsi:["20 m","40 m","30 m","50 m"], jawaban:1,
+      bahas:"R = v₀² sin 2θ / g = (400 × 1) / 10 = 40 m." },
+    { q:"Gerak parabola dapat dianalisis sebagai gabungan dari...",
+      opsi:["GLBB horizontal dan GLB vertikal","GLB horizontal dan GLBB vertikal","Dua GLBB","Dua GLB"], jawaban:1,
+      bahas:"Arah horizontal: GLB (v konstan). Arah vertikal: GLBB (percepatan g)." },
+    { q:"Sebuah benda diluncurkan dengan v₀x = 12 m/s dan v₀y = 16 m/s. Berapa besar kecepatan awal totalnya?",
+      opsi:["20 m/s","28 m/s","4 m/s","192 m/s"], jawaban:0,
+      bahas:"v₀ = √(v₀x² + v₀y²) = √(144 + 256) = √400 = 20 m/s." }
+  ],
+  mission2: [
+    { q:"Sebuah benda dilempar horizontal dari ketinggian 20 m dengan v₀x = 10 m/s. Berapa waktu jatuh ke tanah? (g = 10 m/s²)",
+      opsi:["1 s","2 s","3 s","4 s"], jawaban:1,
+      bahas:"y = ½ g t² → 20 = ½ × 10 × t² → t² = 4 → t = 2 s." },
+    { q:"Dari soal sebelumnya, berapa jarak horizontal yang ditempuh benda?",
+      opsi:["10 m","20 m","30 m","40 m"], jawaban:1,
+      bahas:"x = v₀x × t = 10 × 2 = 20 m." },
+    { q:"Pada gerak parabola, percepatan benda pada arah vertikal adalah...",
+      opsi:["0","g ke atas","g ke bawah","bergantung kecepatan"], jawaban:2,
+      bahas:"Gravitasi selalu berarah ke bawah, sehingga ay = −g." },
+    { q:"Dua benda dilempar dengan kecepatan awal sama tetapi sudut berbeda, 30° dan 60°. Jangkauan keduanya...",
+      opsi:["Berbeda","Sama","30° lebih jauh","60° lebih jauh"], jawaban:1,
+      bahas:"R = v₀² sin 2θ / g. sin 60° = sin 120°, sehingga jangkauan sama (sudut komplementer)." },
+    { q:"Sebuah bola ditembakkan dengan v₀ = 30 m/s pada sudut 37° (sin 37° = 0,6; cos 37° = 0,8). Berapa v₀x?",
+      opsi:["18 m/s","24 m/s","30 m/s","12 m/s"], jawaban:1,
+      bahas:"v₀x = v₀ cos θ = 30 × 0,8 = 24 m/s." },
+    { q:"Dari soal sebelumnya, berapa v₀y?",
+      opsi:["18 m/s","24 m/s","30 m/s","12 m/s"], jawaban:0,
+      bahas:"v₀y = v₀ sin θ = 30 × 0,6 = 18 m/s." },
+    { q:"Waktu total benda di udara (waktu terbang) pada gerak parabola adalah...",
+      opsi:["v₀ sin θ / g","2 v₀ sin θ / g","v₀ cos θ / g","2 v₀ cos θ / g"], jawaban:1,
+      bahas:"t total = 2 × t puncak = 2 v₀ sin θ / g." },
+    { q:"Pada titik terjauh (sebelum menyentuh tanah), kecepatan vertikal benda...",
+      opsi:["Nol","Sama dengan v₀y","Berlawanan tanda dengan v₀y","Maksimum"], jawaban:2,
+      bahas:"Karena lintasan simetris, vy saat mendarat = −v₀y (besar sama, arah berlawanan)." },
+    { q:"Sebuah benda bergerak parabola. Persamaan posisi horizontalnya x = 15t. Berapa v₀x?",
+      opsi:["15 m/s","7,5 m/s","30 m/s","0 m/s"], jawaban:0,
+      bahas:"x = v₀x t → v₀x = 15 m/s (koefisien t)." },
+    { q:"Jika sudut peluncuran diperbesar dari 45° menjadi 60° (v₀ tetap), maka tinggi maksimum...",
+      opsi:["Berkurang","Bertambah","Tetap","Menjadi nol"], jawaban:1,
+      bahas:"h maks ∝ sin²θ. sin²60° > sin²45°, sehingga tinggi maksimum bertambah." }
+  ],
+  mission3: [
+    { q:"Sebuah mesin diaktifkan dengan bola yang harus melewati celah pada ketinggian 5 m. Jika v₀y = 10 m/s, berapa ketinggian maksimum bola? (g = 10 m/s²)",
+      opsi:["2,5 m","5 m","10 m","20 m"], jawaban:1,
+      bahas:"h = v₀y² / (2g) = 100 / 20 = 5 m. Bola tepat melewati celah." },
+    { q:"Untuk mencapai jangkauan maksimum dengan v₀ tetap, sudut peluncuran harus...",
+      opsi:["0°","30°","45°","90°"], jawaban:2,
+      bahas:"R = v₀² sin 2θ / g maksimum saat sin 2θ = 1 → 2θ = 90° → θ = 45°." },
+    { q:"Komponen kecepatan pada arah horizontal mempengaruhi...",
+      opsi:["Tinggi maksimum","Waktu di udara","Jarak horizontal","Percepatan gravitasi"], jawaban:2,
+      bahas:"vx menentukan seberapa jauh benda bergerak horizontal: x = vx t." },
+    { q:"Sebuah benda dilempar dengan v₀ = 25 m/s, θ = 53° (sin 53° = 0,8). Berapa v₀y?",
+      opsi:["15 m/s","20 m/s","25 m/s","10 m/s"], jawaban:1,
+      bahas:"v₀y = v₀ sin θ = 25 × 0,8 = 20 m/s." },
+    { q:"Dari soal sebelumnya, berapa tinggi maksimum benda? (g = 10 m/s²)",
+      opsi:["10 m","20 m","30 m","40 m"], jawaban:1,
+      bahas:"h = v₀y² / (2g) = 400 / 20 = 20 m." },
+    { q:"Pada gerak parabola, besar kecepatan total di sembarang titik adalah...",
+      opsi:["vx + vy","√(vx² + vy²)","vx − vy","vx × vy"], jawaban:1,
+      bahas:"Kecepatan adalah vektor: v = √(vx² + vy²)." },
+    { q:"Jika tidak ada gravitasi, lintasan benda yang diluncurkan akan...",
+      opsi:["Parabola","Lurus horizontal","Lingkaran","Lurus vertikal"], jawaban:1,
+      bahas:"Tanpa gravitasi, tidak ada percepatan vertikal, benda bergerak lurus sesuai v₀." },
+    { q:"Waktu yang dibutuhkan benda untuk kembali ke ketinggian awal sama dengan...",
+      opsi:["Waktu naik","Dua kali waktu naik","Setengah waktu naik","Tidak terhingga"], jawaban:1,
+      bahas:"Lintasan simetris: t total = 2 × t naik = 2 v₀ sin θ / g." },
+    { q:"Sebuah bola diluncurkan dan mendarat 60 m dari titik awal dengan v₀x = 20 m/s. Berapa waktu terbangnya?",
+      opsi:["2 s","3 s","4 s","5 s"], jawaban:1,
+      bahas:"x = v₀x t → t = 60/20 = 3 s." },
+    { q:"Kesimpulan yang benar tentang gerak dua dimensi parabola adalah...",
+      opsi:["Gerak horizontal dan vertikal saling bebas","Gerak horizontal mempengaruhi vertikal","Gravitasi mempengaruhi kecepatan horizontal","Kecepatan vertikal selalu konstan"], jawaban:0,
+      bahas:"Prinsip independensi gerak: gerak horizontal (GLB) dan vertikal (GLBB) saling bebas." }
+  ]
+};
+
+/* ---------- DATA MISI ---------- */
+const MISSIONS = [
+  { id:"mission1", title:"Misi 1: Luncurkan Bola ke Target",
+    desc:"Bola harus mencapai target di tanah. Atur kecepatan awal dan sudut, lalu jawab 10 soal untuk memajukan bola.",
+    targetX:60, badge:"Berhasil Menyelesaikan Misi Gerak", badgeIco:"🎯" },
+  { id:"mission2", title:"Misi 2: Seberangkan Benda ke Pulau",
+    desc:"Benda harus menyeberang ke pulau seberang. Jawab soal dengan benar agar benda terus melaju.",
+    targetX:75, badge:"Penakluk Jangkauan Horizontal", badgeIco:"🏝️" },
+  { id:"mission3", title:"Misi 3: Aktifkan Mesin Fisika",
+    desc:"Aktifkan mesin dengan menembakkan bola melewati celah. Kuasai tinggi maksimum dan jangkauan.",
+    targetX:90, badge:"Ahli Parabola", badgeIco:"⚙️" }
+];
+
+/* ---------- STATE ---------- */
+function defaultState(){
+  return {
+    nama:"",
+    skor:0,
+    percobaan:0,
+    jawabanBenar:0,
+    badges:[],          // array id misi yang selesai
+    misiSelesai:[],     // array id misi
+    misiSaatIni:0,      // indeks misi
+    soalIndex:0,        // soal ke berapa (0-9)
+    status:"belum",     // belum | berjalan | selesai
+    waktuMulai:null,
+    waktuSelesai:null,
+    v0:25, theta:45
+  };
+}
+let state = defaultState();
+
+/* ---------- SIMPAN / MUAT ---------- */
+function simpan(){
+  try{ localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }catch(e){}
+  updateHUD();
+  updateSaveInfo();
+}
+function muat(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(raw){
+      const obj = JSON.parse(raw);
+      state = Object.assign(defaultState(), obj);
+    }
+  }catch(e){ state = defaultState(); }
+}
+function updateSaveInfo(){
+  const el = document.getElementById("saveInfo");
+  if(!el) return;
+  const raw = localStorage.getItem(SAVE_KEY);
+  if(raw){
+    el.textContent = "Progres tersimpan di localStorage. Misi selesai: " +
+      state.misiSelesai.length + "/" + MISSIONS.length;
+  }else{
+    el.textContent = "Belum ada progres tersimpan.";
+  }
+}
+function updateHUD(){
+  document.getElementById("hudScore").textContent = state.skor;
+  document.getElementById("hudAttempts").textContent = state.percobaan;
+  document.getElementById("hudBadges").textContent = state.badges.length;
+}
+
+/* ---------- UTIL ---------- */
+function show(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+let toastTimer=null;
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove("show"), 2600);
+}
+
+/* =========================================================
+   THREE.JS / CANVAS 2D
+   ========================================================= */
+const sim = {
+  scene:null, camera:null, renderer:null, ball:null,
+  target:null, trail:null, trailPoints:[],
+  useThree:false, canvas2d:null, ctx:null,
+  v0:25, theta:45, t:0, running:false,
+  x:0, y:0, vx:0, vy:0, range:0, tof:0,
+  worldScale:1, offsetX:0, offsetY:0,
+  lastTime:0
+};
+
+function initThree(){
+  if(typeof THREE === "undefined"){ init2D(); return; }
+  try{
+    const holder = document.getElementById("threeHolder");
+    const w = holder.clientWidth || 320;
+    const h = holder.clientHeight || 260;
+    sim.scene = new THREE.Scene();
+    sim.scene.background = new THREE.Color(0x08111e);
+    sim.camera = new THREE.PerspectiveCamera(50, w/h, 0.1, 1000);
+    sim.renderer = new THREE.WebGLRenderer({antialias:true});
+    sim.renderer.setSize(w,h);
+    sim.renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+    holder.innerHTML = "";
+    holder.appendChild(sim.renderer.domElement);
+
+    // Tanah (blok)
+    const groundGeo
